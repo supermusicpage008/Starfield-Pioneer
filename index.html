@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Terrain Walking Explorer (A.T.W.E.) | Starfield Pioneer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/ScrollTrigger.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: {
+                            black: '#050718',
+                            navy: '#0A1128',
+                            blue: '#1C3F60',
+                            electric: '#4A90E2',
+                            silver: '#C0C6D0',
+                            gray: '#8A94A6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Orbitron', 'sans-serif']
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate'
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        },
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px rgba(74, 144, 226, 0.5)' },
+                            '100%': { boxShadow: '0 0 20px rgba(74, 144, 226, 0.8), 0 0 30px rgba(74, 144, 226, 0.5)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700&display=swap');
+
+        :root {
+            --primary: #FF4D4D; /* 火星红 */
+            --secondary: #4A90E2; /* 深空蓝 */
+            --accent: #9D4EDD; /* 宇宙紫 */
+            --neon: #00FF88; /* 霓虹绿 */
+            --cosmic: #FFB74D; /* 宇宙橙 */
+            --dark-bg: #0A0A1F;
+            --darker-bg: #050510;
+            --star-light: #E0E0FF;
+            --nebula: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #e94560 100%);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 100px;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            background-color: var(--darker-bg);
+            color: #E0E0FF;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(255, 77, 77, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(157, 78, 221, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(74, 144, 226, 0.05) 0%, transparent 50%);
+            z-index: -2;
+            pointer-events: none;
+        }
+        
+        /* 星空背景 */
+        .stars-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .star {
+            position: absolute;
+            background-color: var(--star-light);
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+            opacity: 0;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.1; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        /* 动态渐变文字 */
+        .cosmic-text {
+            background: linear-gradient(90deg, 
+                var(--primary) 0%, 
+                var(--cosmic) 25%, 
+                var(--neon) 50%, 
+                var(--accent) 75%, 
+                var(--secondary) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: gradient-shift 3s ease infinite;
+            position: relative;
+            text-shadow: 0 0 30px rgba(255, 77, 77, 0.3);
+        }
+        
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .cosmic-text::after {
+            content: attr(data-text);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                var(--secondary) 0%, 
+                var(--accent) 25%, 
+                var(--neon) 50%, 
+                var(--cosmic) 75%, 
+                var(--primary) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            opacity: 0.5;
+            animation: gradient-shift 4s ease infinite reverse;
+            z-index: -1;
+        }
+        
+        /* 导航栏 */
+        .nav-island {
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            background: rgba(10, 10, 31, 0.85);
+            border: 1px solid rgba(255, 77, 77, 0.2);
+            border-radius: 50px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 
+                0 10px 40px rgba(255, 77, 77, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-island::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 77, 77, 0.1), 
+                transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .nav-island:hover::before {
+            left: 100%;
+        }
+        
+        .nav-island:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 77, 77, 0.4);
+            box-shadow: 
+                0 20px 60px rgba(255, 77, 77, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-link {
+            position: relative;
+            padding: 10px 20px;
+            margin: 0 5px;
+            transition: all 0.3s ease;
+            z-index: 1;
+            border-radius: 25px;
+            overflow: hidden;
+        }
+        
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, 
+                rgba(255, 77, 77, 0.1), 
+                rgba(157, 78, 221, 0.1));
+            border-radius: 25px;
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.4s ease;
+            z-index: -1;
+        }
+        
+        .nav-link:hover::before {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--neon));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 70%;
+        }
+        
+        /* 英雄区域 */
+        .hero-section {
+            position: relative;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            background: var(--nebula);
+            background-size: 400% 400%;
+            animation: nebula-flow 20s ease infinite;
+        }
+        
+        @keyframes nebula-flow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+        
+        .hero-title {
+            font-size: 4.5rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 
+                0 0 50px rgba(255, 77, 77, 0.5),
+                0 0 100px rgba(157, 78, 221, 0.3);
+        }
+        
+        .hero-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* 行星装饰 */
+        .planet-decoration {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, 
+                var(--primary) 0%,
+                rgba(157, 78, 221, 0.8) 30%,
+                transparent 70%);
+            filter: blur(20px);
+            animation: float 20s ease-in-out infinite;
+            opacity: 0.3;
+            z-index: 1;
+        }
+        
+        .planet-decoration:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle at 70% 30%, 
+                var(--secondary) 0%,
+                rgba(0, 255, 136, 0.6) 40%,
+                transparent 70%);
+            animation-delay: -10s;
+            animation-duration: 25s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(100px, -50px) rotate(90deg); }
+            50% { transform: translate(50px, 100px) rotate(180deg); }
+            75% { transform: translate(-100px, 50px) rotate(270deg); }
+        }
+        
+        /* 功能卡片 */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            padding: 50px 0;
+        }
+        
+        .feature-card {
+            backdrop-filter: blur(15px) saturate(180%);
+            background: rgba(20, 20, 40, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            padding: 40px 30px;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, 
+                var(--primary), 
+                var(--neon), 
+                var(--accent));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.6s ease;
+        }
+        
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, 
+                rgba(255, 77, 77, 0.1) 0%,
+                rgba(157, 78, 221, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: -1;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-15px) rotateX(5deg);
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                0 0 100px rgba(255, 77, 77, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 77, 77, 0.3);
+        }
+        
+        .feature-card:hover::after {
+            opacity: 1;
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+        
+        .feature-icon::before {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            background: conic-gradient(from 0deg, 
+                var(--primary), 
+                var(--neon), 
+                var(--accent), 
+                var(--primary));
+            border-radius: 50%;
+            animation: rotate 4s linear infinite;
+            filter: blur(10px);
+            opacity: 0.5;
+        }
+        
+        .feature-icon i {
+            position: relative;
+            z-index: 1;
+            font-size: 40px;
+            background: linear-gradient(45deg, var(--primary), var(--neon));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 按钮样式 */
+        .cosmic-btn {
+            padding: 16px 40px;
+            border: none;
+            border-radius: 50px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            z-index: 1;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, 
+                var(--primary), 
+                var(--accent));
+            color: white;
+            box-shadow: 
+                0 10px 30px rgba(255, 77, 77, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 
+                0 20px 40px rgba(255, 77, 77, 0.6),
+                0 0 0 1px rgba(255, 255, 255, 0.2);
+            letter-spacing: 2px;
+        }
+        
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.2), 
+                transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .btn-primary:hover::after {
+            left: 100%;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            position: relative;
+        }
+        
+        .btn-outline::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, 
+                var(--primary), 
+                var(--accent));
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            border-radius: 50px;
+        }
+        
+        .btn-outline:hover::before {
+            opacity: 1;
+        }
+        
+        .btn-outline:hover {
+            color: white;
+            border-color: transparent;
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(255, 77, 77, 0.4);
+        }
+        
+        /* 分节符 */
+        .section-divider {
+            height: 200px;
+            position: relative;
+            margin: 100px 0;
+            overflow: hidden;
+        }
+        
+        .divider-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            text-align: center;
+            z-index: 2;
+        }
+        
+        .divider-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                var(--primary), 
+                var(--neon), 
+                var(--accent), 
+                transparent);
+            transform: translateY(-50%);
+        }
+        
+        .divider-line::before,
+        .divider-line::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--primary);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: pulse-ring 2s infinite;
+        }
+        
+        .divider-line::before {
+            left: 25%;
+            border-color: var(--neon);
+        }
+        
+        .divider-line::after {
+            left: 75%;
+            border-color: var(--accent);
+        }
+        
+        @keyframes pulse-ring {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
+        
+        /* 时间线/进度条 */
+        .timeline {
+            position: relative;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 50px 0;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 4px;
+            background: linear-gradient(to bottom, 
+                transparent, 
+                var(--primary), 
+                var(--neon), 
+                var(--accent), 
+                transparent);
+            transform: translateX(-50%);
+        }
+        
+        .timeline-item {
+            position: relative;
+            width: 50%;
+            padding: 30px 40px;
+            margin-bottom: 50px;
+        }
+        
+        .timeline-item:nth-child(odd) {
+            left: 0;
+        }
+        
+        .timeline-item:nth-child(even) {
+            left: 50%;
+        }
+        
+        .timeline-dot {
+            position: absolute;
+            top: 40px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--primary), var(--neon));
+            box-shadow: 0 0 20px var(--primary);
+        }
+        
+        .timeline-item:nth-child(odd) .timeline-dot {
+            right: -12px;
+        }
+        
+        .timeline-item:nth-child(even) .timeline-dot {
+            left: -12px;
+        }
+        
+        /* 3D 容器 */
+        .perspective-container {
+            perspective: 1000px;
+            transform-style: preserve-3d;
+        }
+        
+        .floating-element {
+            animation: float-3d 6s ease-in-out infinite;
+            transform-style: preserve-3d;
+        }
+        
+        @keyframes float-3d {
+            0%, 100% { 
+                transform: 
+                    translateY(0) 
+                    rotateX(0deg) 
+                    rotateY(0deg); 
+            }
+            33% { 
+                transform: 
+                    translateY(-20px) 
+                    rotateX(5deg) 
+                    rotateY(10deg); 
+            }
+            66% { 
+                transform: 
+                    translateY(10px) 
+                    rotateX(-5deg) 
+                    rotateY(-10deg); 
+            }
+        }
+        
+        /* 加载动画 */
+        .cosmic-loader {
+            width: 100px;
+            height: 100px;
+            position: relative;
+        }
+        
+        .cosmic-loader::before,
+        .cosmic-loader::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            animation: cosmic-spin 2s linear infinite;
+        }
+        
+        .cosmic-loader::before {
+            width: 100%;
+            height: 100%;
+            border: 4px solid transparent;
+            border-top-color: var(--primary);
+            border-right-color: var(--neon);
+            border-bottom-color: var(--accent);
+            border-left-color: var(--secondary);
+        }
+        
+        .cosmic-loader::after {
+            width: 70%;
+            height: 70%;
+            top: 15%;
+            left: 15%;
+            border: 4px solid transparent;
+            border-top-color: var(--secondary);
+            border-right-color: var(--accent);
+            border-bottom-color: var(--primary);
+            border-left-color: var(--neon);
+            animation-direction: reverse;
+        }
+        
+        @keyframes cosmic-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .nav-island {
+                border-radius: 30px;
+                padding: 0.5rem 1rem;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .timeline::before {
+                left: 31px;
+            }
+            
+            .timeline-item {
+                width: 100%;
+                padding-left: 70px;
+                padding-right: 25px;
+            }
+            
+            .timeline-item:nth-child(even) {
+                left: 0;
+            }
+            
+            .timeline-dot {
+                left: 19px !important;
+            }
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(10, 10, 31, 0.8);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, var(--primary), var(--accent));
+            border-radius: 10px;
+            border: 2px solid var(--dark-bg);
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(45deg, var(--neon), var(--primary));
+        }
+        
+        /* 选择文本样式 */
+        ::selection {
+            background: rgba(255, 77, 77, 0.3);
+            color: #FFFFFF;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        /* 焦点样式 */
+        *:focus {
+            outline: 2px solid var(--neon);
+            outline-offset: 4px;
+            border-radius: 4px;
+        }
+        
+        /* 粒子效果容器 */
+        .particles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        /* 发光效果 */
+        .glow-effect {
+            filter: drop-shadow(0 0 20px currentColor);
+        }
+        
+        /* 打字机效果 */
+        .typewriter {
+            overflow: hidden;
+            border-right: 3px solid var(--neon);
+            white-space: nowrap;
+            animation: 
+                typing 3.5s steps(40, end),
+                blink-caret .75s step-end infinite;
+        }
+        
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: var(--neon) }
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050718;
+            color: #C0C6D0;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(90deg, #C0C6D0, #4A90E2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            position: relative;
+        }
+        
+        .gradient-text::after {
+            content: attr(data-text);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #4A90E2, #C0C6D0);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            opacity: 0;
+            animation: textShimmer 3s infinite alternate;
+        }
+        
+        @keyframes textShimmer {
+            0% { opacity: 0; transform: translateX(-10%); }
+            50% { opacity: 1; }
+            100% { opacity: 0; transform: translateX(10%); }
+        }
+        
+        .bg-space-gradient {
+            background: linear-gradient(135deg, #050718, #0A1128, #1C3F60);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .nav-island {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            background-color: rgba(10, 17, 40, 0.7);
+            border: 1px solid rgba(74, 144, 226, 0.2);
+            border-radius: 30px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .nav-island:hover {
+            background-color: rgba(10, 17, 40, 0.9);
+            border-color: rgba(74, 144, 226, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .nav-link {
+            position: relative;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: #4A90E2;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .nav-link:hover {
+            color: #4A90E2;
+            transform: translateY(-1px);
+        }
+        
+        .feature-card {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            background-color: rgba(10, 17, 40, 0.5);
+            border: 1px solid rgba(74, 144, 226, 0.2);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(74, 144, 226, 0.1), transparent);
+            transition: left 0.8s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(74, 144, 226, 0.25);
+            border-color: rgba(74, 144, 226, 0.5);
+        }
+        
+        .feature-card:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary {
+            background-color: #4A90E2;
+            color: #050718;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background-color: #C0C6D0;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.45);
+        }
+        
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.8s, height 0.8s;
+        }
+        
+        .btn-primary:active::after {
+            width: 400px;
+            height: 400px;
+        }
+        
+        .btn-outline {
+            border: 2px solid #4A90E2;
+            color: #4A90E2;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-outline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background-color: #4A90E2;
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+        
+        .btn-outline:hover {
+            background-color: transparent;
+            color: #050718;
+            transform: translateY(-2px);
+        }
+        
+        .btn-outline:hover::before {
+            left: 0;
+        }
+        
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.2;
+        }
+        
+        .star {
+            position: absolute;
+            background-color: #C0C6D0;
+            border-radius: 50%;
+            animation: twinkle 5s infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        .robot-image {
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .robot-image:hover {
+            transform: scale(1.05) rotateY(5deg);
+        }
+        
+        .section-divider {
+            height: 3px;
+            background: linear-gradient(90deg, rgba(74, 144, 226, 0), rgba(74, 144, 226, 0.7), rgba(74, 144, 226, 0));
+            margin: 6rem 0;
+            position: relative;
+        }
+        
+        .section-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, rgba(74, 144, 226, 0.3) 0%, rgba(74, 144, 226, 0) 70%);
+            animation: pulse 3s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+            70% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+        
+        /* Mobile menu */
+        .mobile-menu {
+            transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .mobile-menu.active {
+            transform: translateX(0);
+        }
+        
+        /* 3D Canvas */
+        #robot-canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+        
+        /* Loading animation */
+        .loader {
+            border: 4px solid rgba(74, 144, 226, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #4A90E2;
+            width: 50px;
+            height: 50px;
+            animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Placeholder animation */
+        .placeholder-animation {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .placeholder-animation::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(74, 144, 226, 0.1), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .nav-island {
+                border-radius: 20px;
+                padding: 0.5rem 1rem;
+            }
+            
+            .hero-content {
+                text-align: center;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Scroll indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+        
+        .scroll-indicator:hover {
+            opacity: 1;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0) translateX(-50%); }
+            40% { transform: translateY(-25px) translateX(-50%); }
+            60% { transform: translateY(-12px) translateX(-50%); }
+        }
+        
+        /* Hover effects for cards */
+        .hover-scale {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .hover-scale:hover {
+            transform: scale(1.03);
+        }
+        
+        /* Aspect ratio classes */
+        .aspect-w-16 {
+            position: relative;
+            padding-bottom: 56.25%;
+        }
+        
+        .aspect-w-16 > * {
+            position: absolute;
+            height: 100%;
+            width: 100%;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }
+        
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Focus styles */
+        *:focus {
+            outline: 2px solid #4A90E2;
+            outline-offset: 2px;
+        }
+        
+        /* Selection styles */
+        ::selection {
+            background-color: rgba(74, 144, 226, 0.3);
+            color: #C0C6D0;
+        }
+
+        /* 圆形头像样式 */
+        .team-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(74, 144, 226, 0.5);
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .team-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(74, 144, 226, 0.5);
+            border-color: rgba(74, 144, 226, 0.8);
+        }
+
+        /* 团队卡片内圆形图片样式 */
+        .team-card-avatar {
+            width: 128px;
+            height: 128px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid rgba(74, 144, 226, 0.5);
+            box-shadow: 0 0 15px rgba(74, 144, 226, 0.3);
+            margin: 0 auto 1rem;
+            transition: all 0.4s ease;
+        }
+
+        .team-card-avatar:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 20px rgba(74, 144, 226, 0.5);
+            border-color: rgba(74, 144, 226, 0.8);
+        }
+        
+        /* 新增样式：使图片与文字高度匹配 */
+        .image-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+        
+        .image-container img {
+            max-height: 500px;
+            object-fit: contain;
+        }
+        
+        /* 核心创新部分文字图片布局 */
+        .innovation-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        
+        /* 功能卡片调整 */
+        .function-card {
+            min-height: 300px;
+            height: 100%;
+        }
+        
+        /* 实验部分布局 */
+        .experiment-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .experiment-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .experiment-card {
+            min-height: 350px;
+        }
+        
+        /* 视频占位符样式 */
+        .video-placeholder {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, rgba(10, 17, 40, 0.8), rgba(28, 63, 96, 0.8));
+            border: 2px solid rgba(74, 144, 226, 0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4A90E2;
+            font-size: 1.2rem;
+        }
+        
+        .video-placeholder i {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 flex items-center justify-center bg-space-black z-50">
+        <div class="text-center">
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-space-electric font-heading">INITIALIZING A.T.W.E. SYSTEM</p>
+        </div>
+    </div>
+
+<audio controls>
+    <source src="Alpha.mp3" type="audio/mpeg">
+</audio>
+
+
+    <!-- Navigation Island -->
+    <nav class="fixed top-6 left-1/2 transform -translate-x-1/2 z-40 w-[90%] max-w-5xl">
+        <div class="nav-island flex items-center justify-between px-6 py-3">
+            <a href="#" class="flex items-center space-x-2">
+                <span class="text-space-electric text-2xl"><i class="fas fa-robot"></i></span>
+                <span class="font-heading font-bold text-xl">A.T.W.E.</span>
+            </a>
+            
+            <!-- Desktop Navigation -->
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#overview" class="nav-link text-space-silver hover:text-space-electric transition-colors">Overview</a>
+                <a href="#innovation" class="nav-link text-space-silver hover:text-space-electric transition-colors">Innovation</a>
+                <a href="#function" class="nav-link text-space-silver hover:text-space-electric transition-colors">Function</a>
+                <a href="#experiment" class="nav-link text-space-silver hover:text-space-electric transition-colors">Experiment</a>
+                <a href="#team" class="nav-link text-space-silver hover:text-space-electric transition-colors">Team</a>
+                <a href="#contact" class="btn-primary px-4 py-2 rounded-full">Contact</a>
+            </div>
+            
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-button" class="md:hidden text-space-silver hover:text-space-electric text-2xl">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 更简洁的版本 -->
+<section id="hero" class="min-h-screen flex items-center justify-center relative overflow-hidden pt-20">
+    <!-- Animated Background -->
+    <div id="hero-bg" class="hero-bg"></div>
+    
+    <div class="container mx-auto px-6 py-20 relative z-10">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-12">
+            <div class="hero-content md:w-1/2">
+                <h1 class="text-4xl md:text-6xl font-bold mb-4 font-heading">
+                    <span class="gradient-text">All Terrain</span><br>
+                    <span class="text-white">Walking Explorer</span>
+                </h1>
+                <p class="text-xl md:text-2xl text-space-silver mb-6">Conquer Terrain, Command the Unknown</p>
+                <p class="text-space-gray mb-8">An advanced wheel–leg hybrid planetary exploration robot designed for complex terrain traversal, high-motion stability, and intelligent control, enabling humans to explore in extreme environments.</p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="#overview" class="btn-primary px-6 py-3 rounded-full">Explore System</a>
+                    <a href="#contact" class="btn-outline px-6 py-3 rounded-full">Join Mission</a>
+                </div>
+            </div>
+            <div class="md:w-1/2 flex justify-center items-center">
+                <!-- 简洁圆角版本 -->
+                <img src="ATWE Robot.png" alt="ATWE robot" 
+                     class="max-w-full h-auto rounded-xl border-2 border-space-electric/20 
+                            shadow-lg shadow-space-electric/10 hover:shadow-xl hover:shadow-space-electric/20
+                            transition-all duration-300 hover:scale-[1.02]">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scroll Indicator -->
+    <div class="scroll-indicator text-space-electric">
+        <i class="fas fa-chevron-down text-2xl"></i>
+    </div>
+</section>
+    
+    <!-- Overview Section -->
+    <section id="overview" class="py-20 relative">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4 font-heading gradient-text" data-text="System Overview">System Overview</h2>
+                <div class="w-24 h-1 bg-space-electric mx-auto mb-6"></div>
+                <p class="text-xl text-space-gray max-w-3xl mx-auto">The All Terrain Walking Explorer integrates the speed and efficiency of wheeled systems with the adaptability of legged locomotion.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div class="order-2 md:order-1">
+                    <p class="text-space-silver mb-6">A.T.W.E. represents a breakthrough in planetary robotics, designed to overcome the critical flaw of rover rollovers on extreme terrains. Our system prevents catastrophic mission failure and immense financial loss by merging the speed of wheels on flat ground with the superior stability and adaptability of legs on rough landscapes.</p>
+                    
+                    <div class="space-y-4 mb-8">
+                        <div class="flex items-start space-x-3">
+                            <span class="text-space-electric mt-1"><i class="fas fa-check-circle"></i></span>
+                            <p>Prevents rollover and provides access to significantly more varied terrain</p>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <span class="text-space-electric mt-1"><i class="fas fa-check-circle"></i></span>
+                            <p>Equipped with ultrasonic and vision-based sensing systems for real-time terrain perception</p>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <span class="text-space-electric mt-1"><i class="fas fa-check-circle"></i></span>
+                            <p>Automatic obstacle avoidance for obstacles up to 10 cm, traversal up to 30 cm</p>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <span class="text-space-electric mt-1"><i class="fas fa-check-circle"></i></span>
+                            <p>Maximum speed of 100 cm/s on flat terrain with high-performance mobility on slopes</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="image-container order-1 md:order-2">
+                    <img src="overview.jpg" alt="System Overview" class="rounded-lg border border-space-electric max-h-[500px]">
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <div class="section-divider"></div>
+    
+    <!-- Innovation Section -->
+    <section id="innovation" class="py-20 relative">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4 font-heading gradient-text" data-text="Core Innovations">Core Innovations</h2>
+                <div class="w-24 h-1 bg-space-electric mx-auto mb-6"></div>
+                <p class="text-xl text-space-gray max-w-3xl mx-auto">Breakthrough technologies designed to overcome critical challenges in planetary exploration.</p>
+            </div>
+
+            <!-- Innovation 1: Wheel-Leg Hybrid Structure -->
+            <div class="feature-card rounded-xl p-8 mb-12">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h3 class="text-2xl md:text-3xl font-bold mb-4 font-heading text-space-electric">1. Wheel-Leg Moving Mode</h3>
+                        <p class="text-space-gray mb-4">Our robot features a land-adaptive mechanism that switches between efficient wheeled motion and stable legged locomotion, increasing obstacle clearance capability by 50% and enabling reliable traversal of slopes over 25° and obstacles exceeding 20 cm in height.</p>
+                        <p class="text-space-gray mb-4">When moving on even terrains, it automatically adjusts into wheeled mode to maintain high efficiency. On discrete and uneven terrains, it switches to legged mode for superior stability.</p>
+                        <p class="text-space-gray">The robot's movement gait adopts the diagonal gait pattern to simulate human walking, with two servo motors enabling omnidirectional movement. Each wheel-leg module includes fixed parts, servo motors, and connectors for robust performance.</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <img src="轮式2.jpg" alt="Wheel-leg hybrid structure diagram" class="rounded-lg border border-space-electric w-full h-48 object-cover">
+                        <img src="轮式.jpg" alt="Robot in wheeled mode" class="rounded-lg border border-space-electric w-full h-48 object-cover">
+                        <img src="腿式.jpg" alt="Robot in legged mode" class="rounded-lg border border-space-electric w-full h-48 object-cover">
+                        <div class="bg-space-navy/50 rounded-lg border border-space-electric p-4 flex items-center justify-center h-48">
+                            <p class="text-space-silver text-center">Wheel-leg hybrid mechanism demonstrating adaptive locomotion</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Innovation 2: Biomimetic Wave-Shaped Wheel -->
+            <div class="feature-card rounded-xl p-8 mb-12">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <div class="order-2 lg:order-1">
+                        <div class="grid grid-cols-2 gap-4">
+                            <img src="波浪形轮胎1.jpg" alt="Wave-shaped wheel design" class="rounded-lg border border-space-electric w-full h-48 object-cover">
+                            <img src="波浪形轮胎3.jpg" alt="Wave-shaped wheel prototype" class="rounded-lg border border-space-electric w-full h-48 object-cover">
+                            <img src="波浪形轮胎2.jpg" alt="Wave-shaped wheel testing" class="rounded-lg border border-space-electric w-full h-48 object-cover">
+                            <div class="bg-space-navy/50 rounded-lg border border-space-electric p-4 flex items-center justify-center h-48">
+                                <p class="text-space-silver text-center">Biomimetic design inspired by natural wave patterns</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="order-1 lg:order-2">
+                        <h3 class="text-2xl md:text-3xl font-bold mb-4 font-heading text-space-electric">2. Novel Biomimetic Wave-Shaped Wheel</h3>
+                        <p class="text-space-gray mb-4">By combining a smooth surface with a wave-like concave-convex profile, our proprietary wheel design offers advantages in adaptability to complex terrains, motion stability and energy efficiency.</p>
+                        <p class="text-space-gray mb-4">It not only absorbs the advantages of four-legged support but also enhances mobility through the wave-shaped tread, meeting the requirements of lunar exploration operations. The wave-shaped tread does not require a complex track structure and has a more compact volume.</p>
+                        <p class="text-space-gray">Moreover, the wave-shaped tread is less likely to get tangled with weeds, ropes and other debris, resulting in lower maintenance costs and enabling the robot to continuously and stably perform its functions during long-term and high-intensity rescue and exploration tasks.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Innovation 3: Camera and Autonomous Technology -->
+            <div class="feature-card rounded-xl p-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h3 class="text-2xl md:text-3xl font-bold mb-4 font-heading text-space-electric">3. Camera Image Transmission & Automatic Obstacle Avoidance</h3>
+                        <p class="text-space-gray mb-4">Based on exploration requirements, the robot is equipped with 360° imaging capability and can switch between legged and wheeled locomotion modes in real time according to terrain features identified through visual feedback.</p>
+                        <p class="text-space-gray mb-4">To address space communication constraints, we have integrated a gait control module directly into the robot's control board, enabling remote operation and immediate gait switching, thereby reducing the negative impact of signal latency on operational efficiency.</p>
+                        <p class="text-space-gray">The robot features automatic obstacle avoidance for obstacles up to 10 cm in length, the ability to traverse obstacles up to 30 cm, a maximum speed of 100 cm/s on flat terrain, and high-performance mobility on sloped surfaces.</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <img src="腿式运动和避障的图片1.jpg" alt="Obstacle avoidance system" class="rounded-lg border border-space-electric w-full h-48 object-cover">
+                        <img src="腿式运动和避障的图片3.jpg" alt="Camera image transmission" class="rounded-lg border border-space-electric w-full h-48 object-cover">
+                        <img src="腿式运动和避障的图片7.jpg" alt="Autonomous navigation" class="rounded-lg border border-space-electric w-full h-48 object-cover">
+                        <div class="bg-space-navy/50 rounded-lg border border-space-electric p-4 flex items-center justify-center h-48">
+                            <p class="text-space-silver text-center">360° imaging system for comprehensive environmental perception</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <div class="section-divider"></div>
+    
+    <!-- Function Section -->
+    <section id="function" class="py-20 relative">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4 font-heading gradient-text" data-text="Key Functions">Key Functions</h2>
+                <div class="w-24 h-1 bg-space-electric mx-auto mb-6"></div>
+                <p class="text-xl text-space-gray max-w-3xl mx-auto">Advanced capabilities enabling superior performance in extreme environments.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Function 1 -->
+                <div class="feature-card rounded-xl p-6 function-card">
+                    <div class="text-space-electric text-3xl mb-4">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <h4 class="text-xl font-bold mb-3 font-heading">Transformable Wheel-Leg Dual Gait</h4>
+                    <p class="text-space-gray">Diagonal wheel-leg control achieves an efficient balance of speed and stability with excellent endurance performance. The diagonal gait can flexibly handle rugged environments such as gravel and shallow pits, leveraging evenly distributed support points to real-time adjust the robot's posture.</p>
+                </div>
+
+                <!-- Function 2 -->
+                <div class="feature-card rounded-xl p-6 function-card">
+                    <div class="text-space-electric text-3xl mb-4">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h4 class="text-xl font-bold mb-3 font-heading">Automatic Obstacle Avoidance</h4>
+                    <p class="text-space-gray">Integrates a camera and ultrasonic sensing system to complete obstacle detection and avoidance without human intervention. When ultrasonic sensors detect an obstacle 10 cm ahead, all movements immediately stop and return to initial position.</p>
+                </div>
+
+                <!-- Function 3 -->
+                <div class="feature-card rounded-xl p-6 function-card">
+                    <div class="text-space-electric text-3xl mb-4">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <h4 class="text-xl font-bold mb-3 font-heading">Image Recognition & Transmission</h4>
+                    <p class="text-space-gray">The camera is equipped with a rotating motor, supporting 360° full-angle image collection and transmission for comprehensive environmental perception. Image data is real-time transmitted to the control terminal.</p>
+                </div>
+
+                <!-- Function 4 -->
+                <div class="feature-card rounded-xl p-6 function-card">
+                    <div class="text-space-electric text-3xl mb-4">
+                        <i class="fas fa-hand-pointer"></i>
+                    </div>
+                    <h4 class="text-xl font-bold mb-3 font-heading">Simple Operation</h4>
+                    <p class="text-space-gray">No complex professional operation required; preset commands can be executed with just a click. Core action groups are pre-written into the control board, allowing quick switching between movement modes based on terrain images.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <div class="section-divider"></div>
+    
+  <!-- Experiment Section -->
+<section id="experiment" class="py-20 relative">
+    <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl md:text-5xl font-bold mb-4 font-heading gradient-text" data-text="Validation Experiments">Validation Experiments</h2>
+            <div class="w-24 h-1 bg-space-electric mx-auto mb-6"></div>
+            <p class="text-xl text-space-gray max-w-3xl mx-auto">Comprehensive testing validating the feasibility and performance of our innovations.</p>
+        </div>
+        
+        <div class="experiment-grid">
+            <!-- Experiment 1: Gait Testing -->
+            <div class="feature-card rounded-xl p-6 experiment-card">
+                <h4 class="text-xl font-bold mb-3 font-heading">1. Gait Testing Experiment</h4>
+                <p class="text-space-gray mb-4">The robot body was assembled with wheel-leg modules and connected to the control board. Upper-computer parameters were adjusted to debug both forward and backward gaits.</p>
+                <p class="text-space-gray mb-4">Eight sets of parameters were used to test forward motion, followed by another eight sets for a six-step backward gait. The experiment verified the feasibility of practical parameter tuning for the proposed wheel-leg hybrid gait.</p>
+                <div class="mt-4">
+                    <p class="text-space-silver mb-2"><strong>Video Demonstration:</strong></p>
+                    <div class="space-y-3">
+                        <video controls class="w-full rounded-lg border border-space-electric">
+                            <source src="实验1.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <p class="text-space-gray text-sm text-center">Gait Debugging Experiment - Demonstrating the complete testing process of steering, wheeled gait, and legged gait</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Experiment 2: Complex Terrain Crossing -->
+            <div class="feature-card rounded-xl p-6 experiment-card">
+                <h4 class="text-xl font-bold mb-3 font-heading">2. Complex Terrain Crossing Experiment</h4>
+                <p class="text-space-gray mb-4">Testing the robot's ability to traverse challenging landscapes including slopes over 25° and obstacles exceeding 20 cm in height.</p>
+                <p class="text-space-gray mb-4">The hybrid wheel-leg system demonstrated 50% improvement in obstacle clearance capability compared to traditional wheeled systems.</p>
+                <div class="mt-4">
+                    <p class="text-space-silver mb-2"><strong>Video Demonstration:</strong></p>
+                    <div class="space-y-3">
+                        <video controls class="w-full rounded-lg border border-space-electric">
+                            <source src="实验2.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <p class="text-space-gray text-sm text-center">Crossing Complex Terrain Experiment - Demonstrating the robot's ability to overcome steep slopes and obstacles</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Experiment 3: Obstacle Avoidance -->
+            <div class="feature-card rounded-xl p-6 experiment-card">
+                <h4 class="text-xl font-bold mb-3 font-heading">3. Obstacle Avoidance Experiment</h4>
+                <p class="text-space-gray mb-4">A camera was connected to the mobile control application. Four target obstacles were captured, and all images transmitted were clear and stable.</p>
+                <p class="text-space-gray mb-4">The obstacle-avoidance threshold was set to 10 cm. The robot successfully stopped within the 10 cm threshold in 80% of trials, while the remaining cases exceeded the threshold by only 0.5-1 cm.</p>
+                <div class="mt-4">
+                    <p class="text-space-silver mb-2"><strong>Video Demonstration:</strong></p>
+                    <div class="space-y-3">
+                        <video controls class="w-full rounded-lg border border-space-electric">
+                            <source src="实验3.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <p class="text-space-gray text-sm text-center">Obstacle Avoidance Experiment - Demonstrating automatic obstacle detection and avoidance functionality</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Experiment 4: Load Testing -->
+            <div class="feature-card rounded-xl p-6 experiment-card">
+                <h4 class="text-xl font-bold mb-3 font-heading">4. Load Testing Experiment</h4>
+                <p class="text-space-gray mb-4">Testing the robot's payload capacity and stability under loaded conditions. The robot demonstrated reliable performance while carrying scientific instruments and samples.</p>
+                <p class="text-space-gray mb-4">Performance was evaluated in weeds, debris, and soil. Traditional Mecanum wheels exhibited a jamming probability of up to 40% due to debris adhesion.</p>
+                <p class="text-space-gray mb-4">In contrast, the biomimetic wave-shaped wheels maintained stable operation in all three environments, with a debris adhesion rate of only 4%-5% and no significant impact on locomotion.</p>
+                <div class="mt-4">
+                    <p class="text-space-silver mb-2"><strong>Load Testing Results:</strong></p>
+                    <div class="space-y-3">
+                        <img src="实验4.png" alt="Load Testing Results" class="w-full rounded-lg border border-space-electric">
+                        <p class="text-space-gray text-sm text-center">Load Test - Demonstrating the robot's load-bearing capacity and stability performance in complex environments</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-12 text-center">
+            <p class="text-space-silver max-w-3xl mx-auto">To date, the team has completed all four experiments, achieved stable dual-gait debugging, implemented image-based obstacle avoidance, completed wave-shaped wheel testing, and validated payload capacity for practical applications.</p>
+        </div>
+    </div>
+</section>
+    
+    <div class="section-divider"></div>
+
+<!-- Team Section -->
+<section id="team" class="py-20 relative">
+    <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl md:text-5xl font-bold mb-4 font-heading gradient-text" data-text="Starfield Pioneer">Starfield Pioneer</h2>
+            <div class="w-24 h-1 bg-space-electric mx-auto mb-6"></div>
+            <p class="text-xl text-space-gray max-w-3xl mx-auto">A multidisciplinary student engineering team driven by a passion for space exploration and robotics innovation.</p>
+        </div>
+
+        <!-- 移动端菜单 -->
+        <div id="mobile-menu" class="mobile-menu fixed top-0 left-0 h-full w-4/5 bg-space-navy z-50 shadow-lg p-6">
+            <div class="flex justify-between items-center mb-8">
+                <a href="#" class="flex items-center space-x-2">
+                    <span class="text-space-electric text-2xl"><i class="fas fa-robot"></i></span>
+                    <span class="font-heading font-bold text-xl">A.T.W.E.</span>
+                </a>
+                <button id="close-menu-button" class="text-space-silver hover:text-space-electric text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="flex flex-col space-y-6">
+                <!-- 移动端菜单链接 -->
+                <a href="#overview" class="text-space-silver hover:text-space-electric">System Overview</a>
+                <a href="#innovation" class="text-space-silver hover:text-space-electric">Innovation</a>
+                <a href="#function" class="text-space-silver hover:text-space-electric">Function</a>
+                <a href="#experiment" class="text-space-silver hover:text-space-electric">Experiment</a>
+                <a href="#team" class="text-space-silver hover:text-space-electric">Team</a>
+                <a href="#contact" class="text-space-silver hover:text-space-electric">Contact</a>
+            </div>
+        </div>
+
+        <!-- 主要内容区域 -->
+        <div class="flex flex-col lg:flex-row gap-12 items-start">
+            <!-- 左侧内容：Our Mission和团队成员列表 -->
+            <div class="lg:w-1/2">
+                <div class="space-y-6 mb-8">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-6 font-heading text-white">Our Mission</h3>
+                        <p class="text-space-gray mb-6">Our team was formed by a shared passion for aerospace and robotics, nurtured through years of reading related books and attending industry exhibitions. This deep interest drove us to compete in the Conrad Challenge's Aerospace & Aviation track.</p>
+                        
+                        <p class="text-space-gray mb-6">We were motivated by a critical flaw in current planetary exploration: the high risk of rover rollovers on extreme terrains, which can lead to catastrophic mission failure and immense financial loss. To solve this fundamental issue of stability and robustness, we innovated a quadrupedal wheel-leg robot.</p>
+                        
+                        <p class="text-space-gray mb-8">This hybrid design merges the speed of wheels on flat ground with the superior stability and adaptability of legs on rough landscapes, ensuring mission continuity where traditional rovers would fail.</p>
+                        
+                        <div class="space-y-6 mb-8">
+                            <div class="flex items-start space-x-3">
+                                <img src="Ruilin.png" alt="Wang Ruilin" class="team-avatar mt-1">
+                                <div>
+                                    <h4 class="font-bold text-white">Wang Ruilin - Technical Lead</h4>
+                                    <p class="text-space-gray">Expert in mechanical design, robotics, and autonomous systems. With hands-on experience in hardware integration and programming, Wang leads the technical development of our wheel-leg hybrid system. His innovative approach to gait control algorithms has been crucial to the project's success.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3">
+                                <img src="HAL.png" alt="Li Jiahan" class="team-avatar mt-1">
+                                <div>
+                                    <h4 class="font-bold text-white">Li Jiahan - Financial Strategist</h4>
+                                    <p class="text-space-gray">Extensive experience and expertise in space technology finance and business strategy. Li has participated in numerous business competitions including UToronto's AI+Business competition. His financial acumen ensures sustainable project development and effective resource allocation for our aerospace innovation.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3">
+                                <img src="eliot.jpg" alt="Wang Zhaoche" class="team-avatar mt-1">
+                                <div>
+                                    <h4 class="font-bold text-white">Wang Zhaoche - Business Developer</h4>
+                                    <p class="text-space-gray">Specializes in commercial model development and market strategy for space technologies. Wang's expertise in identifying market opportunities and building partnerships has been instrumental in positioning our innovation within the growing space robotics sector and connecting with potential stakeholders.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <a href="#contact" class="btn-primary px-6 py-3 rounded-full inline-block">Join Our Mission</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧内容：团队卡片 -->
+            <div class="lg:w-1/2">
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3 gap-8 mb-12">
+                    <!-- Team Member 1 - Wang Ruilin 圆形图片 -->
+                    <div class="feature-card rounded-xl p-6 text-center">
+                        <img src="Ruilin.png" alt="Wang Ruilin - Technical Lead" class="team-card-avatar mx-auto mb-4">
+                        <h4 class="text-xl font-bold mb-2 font-heading">Wang Ruilin</h4>
+                        <p class="text-space-electric mb-3">CTO (Technical Leader)</p>
+                        <p class="text-space-gray">Expert in mechanical design, hardware integration and autonomous programming. Leads technical development with innovative gait control algorithms.</p>
+                    </div>
+
+                    <!-- Team Member 2 - Li Jiahan 圆形图片 -->
+                    <div class="feature-card rounded-xl p-6 text-center">
+                        <img src="HAL.png" alt="Li Jiahan - Financial Manager" class="team-card-avatar mx-auto mb-4">
+                        <h4 class="text-xl font-bold mb-2 font-heading">Li Jiahan</h4>
+                        <p class="text-space-electric mb-3">CFO (Financial Strategist)</p>
+                        <p class="text-space-gray">Extensive experience in space technology finance. Veteran of business competitions including UToronto's AI+Business competition.</p>
+                    </div>
+
+                    <!-- Team Member 3 - Wang Zhaoche 圆形图片 -->
+                    <div class="feature-card rounded-xl p-6 text-center">
+                        <img src="eliot.jpg" alt="Wang Zhaoche - Business Strategist" class="team-card-avatar mx-auto mb-4">
+                        <h4 class="text-xl font-bold mb-2 font-heading">Wang Zhaoche</h4>
+                        <p class="text-space-electric mb-3">CEO (Business Developer)</p>
+                        <p class="text-space-gray">Specializes in commercial model development and market strategy for space technologies and partnership building.</p>
+                    </div>
+                </div>
+                
+                <!-- 紧凑的信息区块 -->
+                <div class="space-y-4">
+                    <!-- Preliminary Testing 信息 -->
+                    <div class="bg-space-navy/40 rounded-xl p-4 border border-space-blue/20">
+                        <p class="text-space-silver">
+                            <span class="text-space-electric font-semibold">Preliminary Testing:</span> 
+                            Testing with commercial partners has been conducted, providing a foundation for future joint experiments.
+                        </p>
+                    </div>
+                    
+                    <!-- Intellectual Property Protection 信息 -->
+                    <div class="bg-space-navy/40 rounded-xl p-4 border border-space-blue/20">
+                        <p class="text-space-silver">
+                            <span class="text-space-electric font-semibold">Intellectual Property:</span> 
+                            Hardware patents for biomimetic wave-shaped wheel and wheel-leg hybrid structure; software copyright for motion control and obstacle recognition algorithms.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+    
+    <div class="section-divider"></div>
+    
+    <!-- Contact Section -->
+    <section id="contact" class="py-20 relative">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4 font-heading gradient-text" data-text="Join Our Mission">Join Our Mission</h2>
+                <div class="w-24 h-1 bg-space-electric mx-auto mb-6"></div>
+                <p class="text-xl text-space-gray max-w-3xl mx-auto">Exploring the unknown requires more than movement — it demands stability, efficiency, and adaptability.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 gap-12">
+                <div class="bg-space-navy/50 rounded-xl p-8 border border-space-blue/30">
+                    <h3 class="text-2xl font-bold mb-6 font-heading text-white text-center">Contact Information</h3>
+                    <p class="text-space-gray mb-8 text-center max-w-2xl mx-auto">Interested in learning more about A.T.W.E. or collaborating with Starfield Pioneer? Reach out to us using the information below.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-space-black/50 p-6 rounded-xl border border-space-electric/20 hover:border-space-electric/50 transition-all duration-300 transform hover:-translate-y-2 text-center">
+                            <div class="bg-space-electric rounded-full p-3 text-space-black inline-flex items-center justify-center mb-4">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <h4 class="font-bold text-white mb-2">Email</h4>
+                            <p class="text-space-gray">3971589592@qq.com</p>
+                        </div>
+                        
+                        <div class="bg-space-black/50 p-6 rounded-xl border border-space-electric/20 hover:border-space-electric/50 transition-all duration-300 transform hover:-translate-y-2 text-center">
+                            <div class="bg-space-electric rounded-full p-3 text-space-black inline-flex items-center justify-center mb-4">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <h4 class="font-bold text-white mb-2">Location</h4>
+                            <p class="text-space-gray">Hangzhou and Shanghai, China</p>
+                        </div>
+                        
+                        <div class="bg-space-black/50 p-6 rounded-xl border border-space-electric/20 hover:border-space-electric/50 transition-all duration-300 transform hover:-translate-y-2 text-center">
+                            <div class="bg-space-electric rounded-full p-3 text-space-black inline-flex items-center justify-center mb-4">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <h4 class="font-bold text-white mb-2">Phone</h4>
+                            <p class="text-space-gray">+1 (555) 123-4567</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 text-center">
+                        <h4 class="font-bold text-white mb-4">Follow Us</h4>
+                        <div class="flex justify-center space-x-4">
+                            <a href="#" class="bg-space-navy hover:bg-space-electric text-space-silver hover:text-space-black transition-colors rounded-full p-3 transform hover:scale-110">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                            <a href="#" class="bg-space-navy hover:bg-space-electric text-space-silver hover:text-space-black transition-colors rounded-full p-3 transform hover:scale-110">
+                                <i class="fab fa-linkedin-in"></i>
+                            </a>
+                            <a href="#" class="bg-space-navy hover:bg-space-electric text-space-silver hover:text-space-black transition-colors rounded-full p-3 transform hover:scale-110">
+                                <i class="fab fa-github"></i>
+                            </a>
+                            <a href="#" class="bg-space-navy hover:bg-space-electric text-space-silver hover:text-space-black transition-colors rounded-full p-3 transform hover:scale-110">
+                                <i class="fab fa-youtube"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="bg-space-navy py-12">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <a href="#" class="flex items-center space-x-2 mb-4">
+                        <span class="text-space-electric text-2xl"><i class="fas fa-robot"></i></span>
+                        <span class="font-heading font-bold text-xl">A.T.W.E.</span>
+                    </a>
+                    <p class="text-space-gray mb-4">All Terrain Walking Explorer</p>
+                    <p class="text-space-gray">Conquer terrain, command the unknown.</p>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-white mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#overview" class="text-space-gray hover:text-space-electric transition-colors">System Overview</a></li>
+                        <li><a href="#innovation" class="text-space-gray hover:text-space-electric transition-colors">Innovation</a></li>
+                        <li><a href="#function" class="text-space-gray hover:text-space-electric transition-colors">Function</a></li>
+                        <li><a href="#experiment" class="text-space-gray hover:text-space-electric transition-colors">Experiment</a></li>
+                        <li><a href="#team" class="text-space-gray hover:text-space-electric transition-colors">Team</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-white mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-space-gray hover:text-space-electric transition-colors">Documentation</a></li>
+                        <li><a href="#" class="text-space-gray hover:text-space-electric transition-colors">Research Papers</a></li>
+                        <li><a href="#" class="text-space-gray hover:text-space-electric transition-colors">Press Kit</a></li>
+                        <li><a href="#" class="text-space-gray hover:text-space-electric transition-colors">FAQ</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-white mb-4">Contact</h4>
+                    <ul class="space-y-2">
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-envelope text-space-electric"></i>
+                            <a href="mailto:contact@starfieldpioneer.tech" class="text-space-gray hover:text-space-electric transition-colors">contact@starfieldpioneer.tech</a>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-phone text-space-electric"></i>
+                            <a href="tel:+15551234567" class="text-space-gray hover:text-space-electric transition-colors">+1 (555) 123-4567</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Back to Top Button -->
+    <button id="back-to-top" class="fixed bottom-8 right-8 bg-space-electric text-space-black rounded-full p-3 shadow-lg opacity-0 invisible transition-all duration-300">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+    
+    <script>
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize GSAP ScrollTrigger
+            gsap.registerPlugin(ScrollTrigger);
+            
+            // Remove loading screen after a delay
+            setTimeout(function() {
+                const loadingScreen = document.getElementById('loading-screen');
+                gsap.to(loadingScreen, {
+                    opacity: 0,
+                    duration: 1,
+                    onComplete: function() {
+                        loadingScreen.style.display = 'none';
+                    }
+                });
+            }, 2000);
+            
+            // Mobile menu functionality
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const closeMenuButton = document.getElementById('close-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileNavLinks = document.querySelectorAll('.mobile-menu a');
+            
+            mobileMenuButton.addEventListener('click', function() {
+                mobileMenu.classList.add('active');
+            });
+            
+            closeMenuButton.addEventListener('click', function() {
+                mobileMenu.classList.remove('active');
+            });
+            
+            mobileNavLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                });
+            });
+            
+            // Create animated stars background
+            const heroBg = document.getElementById('hero-bg');
+            const starCount = 100;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                
+                // Random position
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                
+                // Random size
+                const size = Math.random() * 2;
+                
+                // Random animation delay
+                const delay = Math.random() * 5;
+                
+                star.style.left = `${x}%`;
+                star.style.top = `${y}%`;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.animationDelay = `${delay}s`;
+                
+                heroBg.appendChild(star);
+            }
+            
+            // Scroll animations for sections
+            const sections = document.querySelectorAll('section');
+            
+            sections.forEach(section => {
+                gsap.from(section, {
+                    scrollTrigger: {
+                        trigger: section,
+                        start: 'top 80%',
+                        toggleActions: 'play none none none'
+                    },
+                    opacity: 0,
+                    y: 50,
+                    duration: 1
+                });
+            });
+            
+            // Back to top button functionality
+            const backToTopButton = document.getElementById('back-to-top');
+            
+            window.addEventListener('scroll', function() {
+                if (window.pageYOffset > 300) {
+                    backToTopButton.classList.remove('opacity-0', 'invisible');
+                    backToTopButton.classList.add('opacity-100', 'visible');
+                } else {
+                    backToTopButton.classList.remove('opacity-100', 'visible');
+                    backToTopButton.classList.add('opacity-0', 'invisible');
+                }
+            });
+            
+            backToTopButton.addEventListener('click', function() {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Feature card hover animations
+            const featureCards = document.querySelectorAll('.feature-card');
+            
+            featureCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    gsap.to(this, {
+                        y: -10,
+                        boxShadow: '0 10px 20px rgba(74, 144, 226, 0.2)',
+                        borderColor: 'rgba(74, 144, 226, 0.4)',
+                        duration: 0.3
+                    });
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    gsap.to(this, {
+                        y: 0,
+                        boxShadow: 'none',
+                        borderColor: 'rgba(74, 144, 226, 0.2)',
+                        duration: 0.3
+                    });
+                });
+            });
+            
+            // Initialize Three.js scene for background effect
+            function initThreeScene() {
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                
+                const renderer = new THREE.WebGLRenderer({ alpha: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.domElement.id = 'robot-canvas';
+                document.getElementById('hero').appendChild(renderer.domElement);
+                
+                // Create particles
+                const particlesGeometry = new THREE.BufferGeometry();
+                const particlesCount = 1500;
+                
+                const posArray = new Float32Array(particlesCount * 3);
+                
+                for (let i = 0; i < particlesCount * 3; i++) {
+                    posArray[i] = (Math.random() - 0.5) * 10;
+                }
+                
+                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+                
+                const particlesMaterial = new THREE.PointsMaterial({
+                    size: 0.005,
+                    color: 0x4A90E2,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+                scene.add(particlesMesh);
+                
+                camera.position.z = 5;
+                
+                // Animation
+                function animate() {
+                    requestAnimationFrame(animate);
+                    
+                    particlesMesh.rotation.y += 0.001;
+                    
+                    renderer.render(scene, camera);
+                }
+                
+                animate();
+                
+                // Handle window resize
+                window.addEventListener('resize', function() {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+            
+            // Initialize Three.js scene
+            try {
+                initThreeScene();
+            } catch (error) {
+                console.error('Three.js initialization error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
